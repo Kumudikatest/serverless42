@@ -1,0 +1,109 @@
+{
+  "EDITOR_STATE": {
+    "allProjectFiles": {
+      "46990fd5-ee8e-4839-80d9-819ac1ed78aa": {
+        "id": "46990fd5-ee8e-4839-80d9-819ac1ed78aa",
+        "parent": null,
+        "name": "websocket-authorizer-example",
+        "type": "DIRECTORY",
+        "isDirectory": true,
+        "children": [
+          "5005d330-464c-480e-915a-35a6c57c344a"
+        ],
+        "isRemovable": false,
+        "filePath": "websocket-authorizer-example"
+      },
+      "5005d330-464c-480e-915a-35a6c57c344a": {
+        "id": "5005d330-464c-480e-915a-35a6c57c344a",
+        "parent": "46990fd5-ee8e-4839-80d9-819ac1ed78aa",
+        "name": "handler.js",
+        "type": "JS_LAMBDA",
+        "isDirectory": false,
+        "children": [],
+        "isRemovable": true,
+        "filePath": "websocket-authorizer-example/handler.js",
+        "code": "'use strict';\n\nconst AWS = require('aws-sdk')\n\n// the following section injects the new ApiGatewayManagementApi service\n// into the Lambda AWS SDK, otherwise you'll have to deploy the entire new version of the SDK\n\n/* START ApiGatewayManagementApi injection */\nconst { Service, apiLoader } = AWS\n\napiLoader.services['apigatewaymanagementapi'] = {}\n\nconst model = {\n  metadata: {\n    apiVersion: '2018-11-29',\n    endpointPrefix: 'execute-api',\n    signingName: 'execute-api',\n    serviceFullName: 'AmazonApiGatewayManagementApi',\n    serviceId: 'ApiGatewayManagementApi',\n    protocol: 'rest-json',\n    jsonVersion: '1.1',\n    uid: 'apigatewaymanagementapi-2018-11-29',\n    signatureVersion: 'v4'\n  },\n  operations: {\n    PostToConnection: {\n      http: {\n        requestUri: '/@connections/{connectionId}',\n        responseCode: 200\n      },\n      input: {\n        type: 'structure',\n        members: {\n          Data: {\n            type: 'blob'\n          },\n          ConnectionId: {\n            location: 'uri',\n            locationName: 'connectionId'\n          }\n        },\n        required: ['ConnectionId', 'Data'],\n        payload: 'Data'\n      }\n    }\n  },\n  paginators: {},\n  shapes: {}\n}\n\nAWS.ApiGatewayManagementApi = Service.defineService('apigatewaymanagementapi', ['2018-11-29'])\nObject.defineProperty(apiLoader.services['apigatewaymanagementapi'], '2018-11-29', {\n  // eslint-disable-next-line\n  get: function get() {\n    return model\n  },\n  enumerable: true,\n  configurable: true\n})\n/* END ApiGatewayManagementApi injection */\n\nmodule.exports.connect = (event, context, cb) => {\n  cb(null, {\n    statusCode: 200,\n    body: 'Connected.'\n  });\n};\n\nmodule.exports.disconnect = (event, context, cb) => {\n  cb(null, {\n    statusCode: 200,\n    body: 'Disconnected.'\n  });\n};\n\nmodule.exports.default = async (event, context, cb) => {\n  // default function that just echos back the data to the client\n  const client = new AWS.ApiGatewayManagementApi({\n    apiVersion: '2018-11-29',\n    endpoint: `https://${event.requestContext.domainName}/${event.requestContext.stage}`\n  });\n\n  await client\n    .postToConnection({\n      ConnectionId: event.requestContext.connectionId,\n      Data: `default route received: ${event.body}`\n    })\n    .promise();\n\n  cb(null, {\n    statusCode: 200,\n    body: 'Sent.'\n  });\n};\n\n\nmodule.exports.auth = async (event, context) => {\n  // return policy statement that allows to invoke the connect function.\n  // in a real world application, you'd verify that the header in the event\n  // object actually corresponds to a user, and return an appropriate statement accordingly\n  return {\n    \"principalId\": \"user\",\n    \"policyDocument\": {\n      \"Version\": \"2012-10-17\",\n      \"Statement\": [\n        {\n          \"Action\": \"execute-api:Invoke\",\n          \"Effect\": \"Allow\",\n          \"Resource\": event.methodArn\n        }\n      ]\n    }\n  };\n};\n\n",
+        "config": {
+          "runtime": "nodejs10.x",
+          "handler": "connect",
+          "timeout": 60,
+          "memory": 128,
+          "layers": []
+        },
+        "triggers": []
+      },
+      "99553126-5d6e-4173-a6be-51d0a7a3dc07": {
+        "id": "99553126-5d6e-4173-a6be-51d0a7a3dc07",
+        "parent": null,
+        "name": "serverless.yml",
+        "type": "YAML_FILE",
+        "isDirectory": false,
+        "children": [],
+        "isRemovable": true,
+        "filePath": "serverless.yml",
+        "code": "service: websocket-authorizer-example\n\nprovider:\n  name: aws\n  stage: dev\n  runtime: nodejs8.10\n\nfunctions:\n  connect:\n    handler: handler.connect\n    events:\n      - websocket:\n          route: $connect # authorizers are only for connect routes\n          authorizer:\n            name: auth\n            identitySource:\n              - 'route.request.header.Auth'\n  default:\n    handler: handler.default\n    events:\n      - websocket:\n          route: $default\n\n  auth:\n    handler: handler.auth\n"
+      },
+      "d36d0049-88f5-4eb8-b757-f33c7f7e4695": {
+        "id": "d36d0049-88f5-4eb8-b757-f33c7f7e4695",
+        "parent": null,
+        "name": "README.md",
+        "type": "MARKDOWN_FILE",
+        "isDirectory": false,
+        "children": [],
+        "isRemovable": true,
+        "filePath": "README.md",
+        "code": "<!--\ntitle: 'Simple Websocket Authorizers'\ndescription: 'The example shows you how to deploy simple websocket authorizers'\nframework: v1\nplatform: AWS\nlanguage: nodeJS\nauthorLink: 'https://github.com/eahefnawy'\nauthorName: 'Eslam Î» Hefnawy'\nauthorAvatar: 'https://avatars3.githubusercontent.com/u/2312463?v=4&s=140'\n-->\n\n# Simple Websockets Authorizers Example\n\n* Deploy the example service.\n* connect to the outputted wss url using `wscat`:\n\n```\nwscat -c <wss-url>\n```\n\n* Connection should fail. If you try again, this time specifying an `Auth` header:\n\n ```\n wscat -c <wss-url> -H Auth:secret\n ```\n * Connection succeeds.\n * Feel free to chat with yourself :)\n"
+      },
+      "479713ab-4678-4205-b1c0-b5795b6940ea": {
+        "id": "479713ab-4678-4205-b1c0-b5795b6940ea",
+        "parent": null,
+        "name": "package.json",
+        "type": "JSON_FILE",
+        "isDirectory": false,
+        "children": [],
+        "isRemovable": true,
+        "filePath": "package.json",
+        "code": "{\n  \"name\": \"aws-nodejs-websockets-authorizers\",\n  \"version\": \"1.0.0\",\n  \"description\": \"Simple example that demonstrates how to use authorizer functions with websocket events\",\n  \"author\": \"\",\n  \"license\": \"MIT\"\n}\n"
+      }
+    },
+    "rootNode": "46990fd5-ee8e-4839-80d9-819ac1ed78aa",
+    "openFiles": [
+      "5005d330-464c-480e-915a-35a6c57c344a"
+    ],
+    "currentFileId": "5005d330-464c-480e-915a-35a6c57c344a",
+    "resources": {},
+    "customTemplate": {
+      "dialect": "CloudFormation",
+      "definitions": null
+    },
+    "envVariables": [
+      {
+        "lambdaId": "all",
+        "varKey": "SIGMA_AWS_ACC_ID",
+        "varValue": null,
+        "shouldPersist": false,
+        "displayOnly": false,
+        "editable": false
+      }
+    ],
+    "packageJSON": {
+      "dependencies": {}
+    }
+  },
+  "PROJECT_META": {
+    "projectName": "aws-nodejs-websockets-authorizers",
+    "projectDescription": "Simple example that demonstrates how to use authorizer functions with websocket events",
+    "projectVersion": "1.0.0",
+    "projectRegion": "us-east-1",
+    "platform": "AWS",
+    "platformRegions": {},
+    "lastSave": 1576572096476
+  },
+  "VCS_STATE": {
+    "provider": "GitHub",
+    "repo": {
+      "name": "serverless42",
+      "url": "https://github.com/kumudikatest/serverless42"
+    }
+  }
+}
